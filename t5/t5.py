@@ -12,23 +12,23 @@ class Graph:
         self.d[s] = initial
 
     def relax(self, u, v, w):
-        if self.d[v] > self.d[u] + w and self.d[u] + w >= 0:
+        if self.d[v] > self.d[u] + w and self.d[u] + w > 0:
             self.d[v] = self.d[u] + w
             self.f[v] = u
 
     def getDistOf(self, x):
         return self.d[x]
     
+    def getFather(self, x):
+        return self.f[x]
+    
 
 def calc_travel(E, initial_energy, n):
     g = Graph(n, 0, initial_energy)
-    for i in range(1, n):
+    for i in range(1, n - 1):
         for e in E:
             g.relax(e[0], e[1], e[2])
 
-    for e in E:
-        if g.getDistOf(e[1]) > g.getDistOf(e[0]) + e[2] and g.getDistOf(e[0]) + e[2] >= 0:
-            return _INF
         
     return g.getDistOf(n - 1)
 
@@ -47,7 +47,7 @@ def main():
     initial_energy = 100
     left_energy = calc_travel(E, initial_energy, n)
 
-    if (left_energy == _INF):
+    if (left_energy > m * 100):
         print("impossible")
     else:
         print("possible")
