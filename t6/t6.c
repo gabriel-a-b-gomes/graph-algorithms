@@ -14,6 +14,7 @@ typedef struct adj *p_adj;
 
 struct adj {
     int idx;
+    int peso;
     p_adj prox;
 };
 
@@ -65,7 +66,7 @@ int main(void) {
     e = 0;
     p_vertice vs;
 
-    vs = malloc((n * N + 2) * sizeof(struct vertice));
+    vs = malloc((n * (Q + 1) + 2) * sizeof(struct vertice));
 
     p_premiados premiados = NULL;
 
@@ -79,30 +80,47 @@ int main(void) {
         p_vertice aux_v;
         aux_v = malloc((Q + 1) * sizeof(struct vertice));
 
+        for (int j = 0; j <= Q; j++) {
+            aux_v[j].valor = 0;
+            aux_v[j].peso = 0;
+            aux_v[j].adj = NULL;
+        }
+
         for (int k = 0; k <= moedas[i].qtde; k++) {
             for (int j = s; j <= e; j++) {
-                if (i > 0 && moedas[i].valor + moedas[i - 1].valor >= Q && k > 0) {
-                    break;
-                }
-
                 if (moedas[i].valor * k + vs[j].valor <= Q) {
-                    aux_sn++;
-                    adicionaVertice(g);
+                    int u = moedas[i].valor * k + vs[j].valor;
+                    aux_v[u].valor = u;
 
-                    adicionaArco(g, j, aux_sn, moedas[i].peso * k);
+                    p_adj adj = malloc(sizeof(struct adj));
+                    adj->prox = aux_v[u].adj;
+                    adj->idx = j;
+                    adj->peso = moedas[i].peso * k;
 
-                    if (moedas[i].valor * k + vs[j].valor == Q) {
-                        p_premiados p;
-                        p = malloc(sizeof(struct premiados));
-
-                        p->i = aux_sn;
-                        p->prox = premiados;
-                        premiados = p;
-                    } 
-
-                    vs = (p_vertice) realloc(vs, aux_sn * sizeof(struct vertice));
-                    vs[aux_sn].valor = moedas[i].valor * k + vs[j].valor;
+                    aux_v[u].adj = adj;
                 }
+            }
+        }
+
+        for (int j = 0; j <= Q; j++) {
+            if (aux_v[j].valor == j) {
+                aux_sn++;
+                adicionaVertice(g);
+
+                for (p_adj adj = aux_v[j].adj; adj != NULL; adj = adj->prox) {
+                    adicionaArco(g, adj->idx, aux_sn, adj->peso);
+                }
+
+                if (aux_v[j].valor == Q) {
+                    p_premiados p;
+                    p = malloc(sizeof(struct premiados));
+
+                    p->i = aux_sn;
+                    p->prox = premiados;
+                    premiados = p;
+                } 
+
+                vs[aux_sn].valor = aux_v[j].valor;
             }
         }
 
@@ -116,7 +134,10 @@ int main(void) {
         adicionaArco(g, prem->i, e, 0);
     }
 
-    int *dist = caminhoMinimo(g, 0, N + 2);
+    // printf("Grafo gerado:\n");
+    // printGrafo(g);
+
+    int *dist = caminhoMinimo(g, 0, e);
     
     if (dist[e] == 2147483647) {
         int min = 0;
@@ -130,8 +151,6 @@ int main(void) {
     } else {
         printf("%d\n", dist[e]);
     }
-
-
 
     free(dist);
     destroiGrafo(g);
