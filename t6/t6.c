@@ -25,8 +25,15 @@ struct vertice {
     p_adj adj;
 };
 
+typedef struct premiados *p_premiados;
+
+struct premiados {
+    int i;
+    p_premiados prox;
+};
+
 int main(void) {
-    int n, Q, i;
+    int n, Q, i, s, e;
     int N = 0;
 
     scanf("%d %d", &n, &Q);
@@ -45,84 +52,86 @@ int main(void) {
 
         moedas[i].valor = v;
         moedas[i].peso = p;
-        moedas[i].qtde = q;
+        moedas[i].qtde = q; 
 
-        N += q + 1; // as q + valor 0
-
-        
+        N += q;
     }
 
-    Grafo *g = novoGrafo(N + 2); // adiciona o primeiro e último vertice
+    Grafo *g = novoGrafoVazio();
 
+    adicionaVertice(g);
+
+    s = 0;
+    e = 0;
     p_vertice vs;
-    vs = malloc((N + 2) * sizeof(struct vertice));
 
-    int k = 0;
+    vs = malloc((n * N + 2) * sizeof(struct vertice));
+
+    p_premiados premiados = NULL;
 
     vs[0].valor = 0;
     vs[0].peso = 0;
-    vs[0].adj = NULL;
 
-    vs[N + 1].valor = 0;
-    vs[N + 1].peso = 0;
-    vs[N + 1].adj = NULL;
-
-    int ii = 0, fi = 0;
     for (i = 0; i < n; i++) {
-        int qi = moedas[i].qtde;
+        int sn = e + 1;
+        int aux_sn = e;
 
-        int ki = k + 1;
-        int kf = 0;
-        while (qi >= 0) {
-            k++;
-            vs[k].valor = moedas[i].valor * qi;
-            vs[k].peso = moedas[i].peso * qi;
-            vs[k].adj = NULL;
-            qi--;
-        }
+        p_vertice aux_v;
+        aux_v = malloc((Q + 1) * sizeof(struct vertice));
 
-        kf = k;
+        for (int k = 0; k <= moedas[i].qtde; k++) {
+            for (int j = s; j <= e; j++) {
+                if (i > 0 && moedas[i].valor + moedas[i - 1].valor >= Q && k > 0) {
+                    break;
+                }
 
-        for (int j = ii; j <= fi; j++) {
-            for (int u = ki; u <= kf; u++) {
-                if (!(vs[u].valor == 0 && vs[j].adj != NULL))
-                    if (vs[j].valor + vs[u].valor <= Q) {
-                        adicionaArco(g, j, u, vs[u].peso);
+                if (moedas[i].valor * k + vs[j].valor <= Q) {
+                    aux_sn++;
+                    adicionaVertice(g);
 
-                        p_adj aux;
-                        aux = malloc(sizeof(struct adj));
+                    adicionaArco(g, j, aux_sn, moedas[i].peso * k);
 
-                        aux->idx = u;
-                        aux->prox = vs[j].adj;
-                        vs[j].adj = aux;
-                    }
+                    if (moedas[i].valor * k + vs[j].valor == Q) {
+                        p_premiados p;
+                        p = malloc(sizeof(struct premiados));
+
+                        p->i = aux_sn;
+                        p->prox = premiados;
+                        premiados = p;
+                    } 
+
+                    vs = (p_vertice) realloc(vs, aux_sn * sizeof(struct vertice));
+                    vs[aux_sn].valor = moedas[i].valor * k + vs[j].valor;
+                }
             }
         }
 
-        ii = ki;
-        fi = kf;
+        s = sn;
+        e = aux_sn;
     }
 
-    for (int u = ii; u <= fi; u++) {
-        if (vs[N + 1].valor + vs[u].valor <= Q) {
-            adicionaArco(g, u, N + 1, vs[N + 1].peso);
-
-            p_adj aux;
-            aux = malloc(sizeof(struct adj));
-
-            aux->idx = N + 1;
-            aux->prox = vs[u].adj;
-            vs[u].adj = aux;
-        }
+    e++;
+    adicionaVertice(g);
+    for (p_premiados prem = premiados; prem != NULL; prem = prem->prox) {
+        adicionaArco(g, prem->i, e, 0);
     }
-
-    printf("Grafo gerado:\n");
-    printGrafo(g);
 
     int *dist = caminhoMinimo(g, 0, N + 2);
     
-    for (int i = 0; i <= N + 2; i++)
-        printf("Distância mínima entre 0 e %d: %d\n", i, dist[i]);
+    if (dist[e] == 2147483647) {
+        int min = 0;
+        for (int i = 1; i < e; i++) {
+            if ((vs[i].valor > vs[min].valor || (vs[i].valor == vs[min].valor && dist[i] < dist[min])) && dist[i] != 2147483647) {
+                min = i;
+            }
+        }
+
+        printf("%d %d\n", vs[min].valor, dist[min]);
+    } else {
+        printf("%d\n", dist[e]);
+    }
+
+
 
     free(dist);
     destroiGrafo(g);
